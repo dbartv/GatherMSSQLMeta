@@ -1,0 +1,5 @@
+<General>
+	<MetaServerName>Server1\Instance1</MetaServerName>
+	<MetaDb>MDB</MetaDb>
+	<CsvDelimiter>,</CsvDelimiter>
+</General>
