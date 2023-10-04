@@ -1,5 +1,4 @@
 /*Create the database*/
-
 USE master;
 IF DB_ID (N'MDB') IS NULL
 CREATE DATABASE [MDB];
