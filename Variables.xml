@@ -1,5 +1,9 @@
 <General>
-	<MetaServerName>Server1\Instance1</MetaServerName>
+	<MetaServerName>LAPTOP-LUC3H6T4</MetaServerName>
 	<MetaDb>MDB</MetaDb>
 	<CsvDelimiter>,</CsvDelimiter>
+  <OutputSchema>dbo</OutputSchema>
+  <ModuleInfo>
+    <ModuleFile>Module.psm1</ModuleFile>
+	</ModuleInfo>
 </General>
