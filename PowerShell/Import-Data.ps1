@@ -136,7 +136,7 @@ try
 }
 catch
 {
-  Write-Error ($Global:Error[0] | Format-List -Force | Out-String)	
+  Write-TerminatingError -FileName $LogFile -Message ("Error: " + ($PsItem.Exception))
 }
 #================================================================================================== 
 #Create datatables.
@@ -254,6 +254,34 @@ foreach ($Result in $ReachableServers)
   Write-Log -FileName $LogFile -Message "Imported data for Server: $SqlFullName table: $TableName"
 }
 #================================================================================================== 
+#Truncate table '[$schema].[configurations]'.
+Write-Log -FileName $LogFile -Message "Truncate table '[$schema].[configurations]'."
+#==================================================================================================
+$TableName = "[$schema].[dm_os_sys_info]"
+$Query     = "TRUNCATE TABLE $TableName"
+try 
+{
+  Invoke-Sqlcmd -TrustServerCertificate -ServerInstance $MetaServerName -Database $MetaDb -Query $Query -ErrorAction Stop
+  Write-Log -FileName $LogFile -Message "Table '$TableName' is truncated."
+}
+catch 
+{
+  Write-TerminatingError -FileName $LogFile -ErrorObject $_
+}
+#================================================================================================== 
+#Upload dm_os_sys_info info.
+Write-Log -FileName $LogFile -Message "Upload dm_os_sys_info info."
+#==================================================================================================
+foreach ($Result in $ReachableServers)
+{
+  $SqlFullName     = $Result.full_name
+  [int]$InId       = $Result.i_id
+  #Retrieve the information from System view master.[sys].[dm_os_sys_info] 
+  $Query      = "SELECT null as [db_id], $InId AS [i_id],  t.* FROM [sys].[dm_os_sys_info] t"
+  Import-Bulk $TableName $Query $SqlFullName 'master'
+  Write-Log -FileName $LogFile -Message "Imported data for Server: $SqlFullName table: $TableName"
+}
+#================================================================================================== 
 #Get SERVERPROPERTY info.
 Write-Log -FileName $LogFile -Message "Get SERVERPROPERTY info."
 #==================================================================================================
@@ -312,113 +340,74 @@ $Query = "SELECT
             COALESCE ((SERVERPROPERTY('SqlSortOrderName')),'NULL')                   AS [SqlSortOrderName],
             COALESCE ((SERVERPROPERTY('SuspendedDatabaseCount')),'NULL')             AS [SuspendedDatabaseCount]"
 foreach ($Result in $ReachableServers)
-{
-  $SqlFullName = $Result.full_name
-  [int]$InId   = $Result.i_id
-  $Data = Invoke-Sqlcmd -TrustServerCertificate -ServerInstance $SqlFullName -Database master -Query $Query -ErrorAction Stop 
-  #Call the stored procedure [dbo].[update_serverproperties]  to update the properties of the instance in MDB.[dbo].[instances]
-  $Update = "EXEC [dbo].[update_serverproperties] 
-               @i_id                               =  $InId
-              ,@BuildClrVersion                    = '$($Data.BuildClrVersion)'
-              ,@Collation                          = '$($Data.Collation)'
-              ,@CollationID                        =  $($Data.CollationID)
-              ,@ComparisonStyle                    =  $($Data.ComparisonStyle)
-              ,@ComputerNamePhysicalNetBIOS        = '$($Data.ComputerNamePhysicalNetBIOS)'
-              ,@Edition                            = '$($Data.Edition)'
-              ,@EditionID                          =  $($Data.EditionID)
-              ,@EngineEdition                      =  $($Data.EngineEdition)
-              ,@FilestreamConfiguredLevel          =  $($Data.FilestreamConfiguredLevel)
-              ,@FilestreamEffectiveLevel           =  $($Data.FilestreamEffectiveLevel)
-              ,@FilestreamShareName                = '$($Data.FilestreamShareName)'
-              ,@HadrManagerStatus                  =  $($Data.HadrManagerStatus)
-              ,@InstanceDefaultBackupPath          = '$($Data.InstanceDefaultBackupPath)'
-              ,@InstanceDefaultDataPath            = '$($Data.InstanceDefaultDataPath)'
-              ,@InstanceDefaultLogPath             = '$($Data.InstanceDefaultLogPath)'
-              ,@InstanceName                       = '$($Data.InstanceName)'
-              ,@IsAdvancedAnalyticsInstalled       =  $($Data.IsAdvancedAnalyticsInstalled)
-              ,@IsBigDataCluster                   =  $($Data.IsBigDataCluster)
-              ,@IsClustered                        =  $($Data.IsClustered)
-              ,@IsExternalAuthenticationOnly       =  $($Data.IsExternalAuthenticationOnly)
-              ,@IsExternalGovernanceEnabled        =  $($Data.IsExternalGovernanceEnabled)
-              ,@IsFullTextInstalled                =  $($Data.IsFullTextInstalled)
-              ,@IsHadrEnabled                      =  $($Data.IsHadrEnabled)
-              ,@IsIntegratedSecurityOnly           =  $($Data.IsIntegratedSecurityOnly)
-              ,@IsLocalDB                          =  $($Data.IsLocalDB)
-              ,@IsPolyBaseInstalled                =  $($Data.IsPolyBaseInstalled)
-              ,@IsServerSuspendedForSnapshotBackup =  $($Data.IsServerSuspendedForSnapshotBackup)
-              ,@IsSingleUser                       =  $($Data.IsSingleUser)
-              ,@IsTempDbMetadataMemoryOptimized    =  $($Data.IsTempDbMetadataMemoryOptimized)
-              ,@IsXTPSupported                     =  $($Data.IsXTPSupported)
-              ,@LCID                               =  $($Data.LCID)
-              ,@LicenseType                        = '$($Data.LicenseType)'
-              ,@MachineName                        = '$($Data.MachineName)'
-              ,@NumLicenses                        =  $($Data.NumLicenses)
-              ,@PathSeparator                      = '$($Data.PathSeparator)'
-              ,@ProcessID                          =  $($Data.ProcessID)
-              ,@ProductBuild                       = '$($Data.ProductBuild)'
-              ,@ProductBuildType                   = '$($Data.ProductBuildType)'
-              ,@ProductLevel                       = '$($Data.ProductLevel)'
-              ,@ProductMajorVersion                = '$($Data.ProductMajorVersion)'
-              ,@ProductMinorVersion                = '$($Data.ProductMinorVersion)'
-              ,@ProductUpdateLevel                 = '$($Data.ProductUpdateLevel)'
-              ,@ProductUpdateReference             = '$($Data.ProductUpdateReference)'
-              ,@ProductVersion                     = '$($Data.ProductVersion)'
-              ,@ResourceLastUpdateDateTime         = '$($Data.ResourceLastUpdateDateTime)'
-              ,@ResourceVersion                    = '$($Data.ResourceVersion)'
-              ,@ServerName                         = '$($Data.ServerName)'
-              ,@SqlCharSet                         =  $($Data.SqlCharSet)
-              ,@SqlCharSetName                     = '$($Data.SqlCharSetName)'
-              ,@SqlSortOrder                       =  $($Data.SqlSortOrder)
-              ,@SqlSortOrderName                   = '$($Data.SqlSortOrderName)'
-              ,@SuspendedDatabaseCount             =  $($Data.SuspendedDatabaseCount)" 
-  Invoke-Sqlcmd -TrustServerCertificate -ServerInstance $MetaServerName -Database $MetaDb -Query $Update -ErrorAction Stop
-  Write-Log -FileName $LogFile -Message "Imported data for Server: $SqlFullName table: [dbo].[instances]"
-}
-#================================================================================================== 
-#Remove constraints that point to table '[dbo].[databases]' and truncate child tables.
-Write-Log -FileName $LogFile -Message "Remove constraints that point to table '[dbo].[databases]' and truncate child tables."
-#==================================================================================================
-#Do this so you can truncate table [dbo].[databases]
-$SchemaTableNames = @('dbo.CHECK_CONSTRAINTS',
-                      'dbo.COLUMN_DOMAIN_USAGE',
-                      'dbo.COLUMN_PRIVILEGES',
-                      'dbo.COLUMNS',
-                      'dbo.CONSTRAINT_COLUMN_USAGE',
-                      'dbo.CONSTRAINT_TABLE_USAGE',
-                      'dbo.DOMAIN_CONSTRAINTS',
-                      'dbo.DOMAINS',
-                      'dbo.KEY_COLUMN_USAGE',
-                      'dbo.PARAMETERS',
-                      'dbo.REFERENTIAL_CONSTRAINTS',
-                      'dbo.ROUTINE_COLUMNS',
-                      'dbo.ROUTINES',
-                      'dbo.SCHEMATA',
-                      'dbo.SEQUENCES',
-                      'dbo.TABLE_CONSTRAINTS',
-                      'dbo.TABLE_PRIVILEGES',
-                      'dbo.TABLES',
-                      'dbo.VIEW_COLUMN_USAGE',
-                      'dbo.VIEW_TABLE_USAGE',
-                      'dbo.VIEWS')
-#Truncate tables and remove the constraints
-foreach ($TableName in $SchemaTableNames)
-{
-  $ConstraintName = ('FK_' + ($TableName.Split('.')[1]) + '_databases')
-          $Query  = "TRUNCATE TABLE $TableName
-                     IF EXISTS 
-                     (
-                       SELECT *
-                       FROM [INFORMATION_SCHEMA].[TABLE_CONSTRAINTS]
-                        WHERE 
-                          CONSTRAINT_TYPE = 'FOREIGN KEY' AND 
-                          CONSTRAINT_SCHEMA = 'dbo' AND 
-                          CONSTRAINT_NAME = '$ConstraintName'
-                      )
-                      BEGIN
-                        ALTER TABLE $TableName DROP CONSTRAINT [$ConstraintName]
-                      END"        
-  Invoke-Sqlcmd -TrustServerCertificate -ServerInstance $MetaServerName -Database $MetaDb -Query $Query -ErrorAction Stop
-  Write-Log -FileName $LogFile -Message "Constraint '$ConstraintName' on table '$TableName' is removed and the table is truncated."
+{ 
+  try 
+  {
+    $SqlFullName = $Result.full_name
+    [int]$InId   = $Result.i_id
+    $Data = Invoke-Sqlcmd -TrustServerCertificate -ServerInstance $SqlFullName -Database master -Query $Query -ErrorAction Stop 
+    #Call the stored procedure [dbo].[update_serverproperties]  to update the properties of the instance in MDB.[dbo].[instances]
+    $Update = "EXEC [dbo].[update_serverproperties] 
+                @i_id                               =  $InId
+                ,@BuildClrVersion                    = '$($Data.BuildClrVersion)'
+                ,@Collation                          = '$($Data.Collation)'
+                ,@CollationID                        =  $($Data.CollationID)
+                ,@ComparisonStyle                    =  $($Data.ComparisonStyle)
+                ,@ComputerNamePhysicalNetBIOS        = '$($Data.ComputerNamePhysicalNetBIOS)'
+                ,@Edition                            = '$($Data.Edition)'
+                ,@EditionID                          =  $($Data.EditionID)
+                ,@EngineEdition                      =  $($Data.EngineEdition)
+                ,@FilestreamConfiguredLevel          =  $($Data.FilestreamConfiguredLevel)
+                ,@FilestreamEffectiveLevel           =  $($Data.FilestreamEffectiveLevel)
+                ,@FilestreamShareName                = '$($Data.FilestreamShareName)'
+                ,@HadrManagerStatus                  =  $($Data.HadrManagerStatus)
+                ,@InstanceDefaultBackupPath          = '$($Data.InstanceDefaultBackupPath)'
+                ,@InstanceDefaultDataPath            = '$($Data.InstanceDefaultDataPath)'
+                ,@InstanceDefaultLogPath             = '$($Data.InstanceDefaultLogPath)'
+                ,@InstanceName                       = '$($Data.InstanceName)'
+                ,@IsAdvancedAnalyticsInstalled       =  $($Data.IsAdvancedAnalyticsInstalled)
+                ,@IsBigDataCluster                   =  $($Data.IsBigDataCluster)
+                ,@IsClustered                        =  $($Data.IsClustered)
+                ,@IsExternalAuthenticationOnly       =  $($Data.IsExternalAuthenticationOnly)
+                ,@IsExternalGovernanceEnabled        =  $($Data.IsExternalGovernanceEnabled)
+                ,@IsFullTextInstalled                =  $($Data.IsFullTextInstalled)
+                ,@IsHadrEnabled                      =  $($Data.IsHadrEnabled)
+                ,@IsIntegratedSecurityOnly           =  $($Data.IsIntegratedSecurityOnly)
+                ,@IsLocalDB                          =  $($Data.IsLocalDB)
+                ,@IsPolyBaseInstalled                =  $($Data.IsPolyBaseInstalled)
+                ,@IsServerSuspendedForSnapshotBackup =  $($Data.IsServerSuspendedForSnapshotBackup)
+                ,@IsSingleUser                       =  $($Data.IsSingleUser)
+                ,@IsTempDbMetadataMemoryOptimized    =  $($Data.IsTempDbMetadataMemoryOptimized)
+                ,@IsXTPSupported                     =  $($Data.IsXTPSupported)
+                ,@LCID                               =  $($Data.LCID)
+                ,@LicenseType                        = '$($Data.LicenseType)'
+                ,@MachineName                        = '$($Data.MachineName)'
+                ,@NumLicenses                        =  $($Data.NumLicenses)
+                ,@PathSeparator                      = '$($Data.PathSeparator)'
+                ,@ProcessID                          =  $($Data.ProcessID)
+                ,@ProductBuild                       = '$($Data.ProductBuild)'
+                ,@ProductBuildType                   = '$($Data.ProductBuildType)'
+                ,@ProductLevel                       = '$($Data.ProductLevel)'
+                ,@ProductMajorVersion                = '$($Data.ProductMajorVersion)'
+                ,@ProductMinorVersion                = '$($Data.ProductMinorVersion)'
+                ,@ProductUpdateLevel                 = '$($Data.ProductUpdateLevel)'
+                ,@ProductUpdateReference             = '$($Data.ProductUpdateReference)'
+                ,@ProductVersion                     = '$($Data.ProductVersion)'
+                ,@ResourceLastUpdateDateTime         = '$($Data.ResourceLastUpdateDateTime)'
+                ,@ResourceVersion                    = '$($Data.ResourceVersion)'
+                ,@ServerName                         = '$($Data.ServerName)'
+                ,@SqlCharSet                         =  $($Data.SqlCharSet)
+                ,@SqlCharSetName                     = '$($Data.SqlCharSetName)'
+                ,@SqlSortOrder                       =  $($Data.SqlSortOrder)
+                ,@SqlSortOrderName                   = '$($Data.SqlSortOrderName)'
+                ,@SuspendedDatabaseCount             =  $($Data.SuspendedDatabaseCount)" 
+    Invoke-Sqlcmd -TrustServerCertificate -ServerInstance $MetaServerName -Database $MetaDb -Query $Update -ErrorAction Stop
+    Write-Log -FileName $LogFile -Message "Imported data for Server: $SqlFullName table: [dbo].[instances]"
+  }
+  catch 
+  {
+    <#Do this if a terminating exception happens#>
+  }
 }
 #================================================================================================== 
 #Truncate table [dbo].[databases]'.
@@ -432,26 +421,7 @@ try
 }
 catch 
 {
-  Write-Error ($Global:Error[0] | Format-List -Force | Out-String)	
-}
-#================================================================================================== 
-#Reëanable the constraints.
-Write-Log -FileName $LogFile -Message "Reëanable the constraints."
-#==================================================================================================
-try 
-{
-  foreach ($TableName in $SchemaTableNames)
-  {
-    $ConstraintName = ('[FK_' + ($TableName.Split('.')[1]) + '_databases]')
-    $Query = "ALTER TABLE $TableName  WITH NOCHECK ADD  CONSTRAINT $ConstraintName FOREIGN KEY([db_id]) REFERENCES [dbo].[databases] ([db_id])
-              ALTER TABLE $TableName CHECK CONSTRAINT $ConstraintName"
-    Invoke-Sqlcmd -TrustServerCertificate -ServerInstance $MetaServerName -Database $MetaDb -Query $Query -ErrorAction Stop
-    Write-Log -FileName $LogFile -Message "Constraint '$ConstraintName' on table '$TableName' is enabled."
-  } 
-}
-catch 
-{
-  Write-Error ($Global:Error[0] | Format-List -Force | Out-String)	
+  Write-TerminatingError -FileName $LogFile -Message ("Error: " + ($PsItem.Exception))
 }
 #================================================================================================== 
 #Upload databases info.
@@ -495,8 +465,9 @@ try
 }
 catch 
 {
-  Write-Error ($Global:Error[0] | Format-List -Force | Out-String)	
+  Write-TerminatingError -FileName $LogFile -Message ("Error: " + ($PsItem.Exception))
 }
+<#
 #================================================================================================== 
 #Loop trough the tables and databases.
 Write-Log -FileName $LogFile -Message "Loop trough the tables and databases."
@@ -540,6 +511,7 @@ foreach ($Database in $Databases)
     Write-Log -FileName $LogFile -Message "Imported data for Server: $SqlFullName Database: $DbName table: $TableName"
   }
 }
+#>
 #================================================================================================== 
 #If needed write warning(s) about unreachable server(s).
 Write-Log -FileName $LogFile -Message "If needed write warning(s) about unreachable server(s)."

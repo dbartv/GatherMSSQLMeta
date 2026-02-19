@@ -200,6 +200,15 @@ BEGIN
 	[is_data_retention_enabled] [bit] NULL,
 	[is_ledger_on] [bit] NULL,
 	[is_change_feed_enabled] [bit] NULL,
+  [is_data_lake_replication_enabled] [bit] NULL,
+  [is_event_stream_enabled] [bit] NULL,
+  [data_compaction] [tinyint] NULL,
+  [data_compaction_desc] [nvarchar](60) NULL,
+  [data_lake_log_publishing] [tinyint] NULL,
+  [data_lake_log_publishing_desc] [nvarchar](60) NULL,
+  [is_vorder_enabled] [bit] NULL,
+  [is_proactive_statistics_refresh_on] [bit] NULL,
+  [is_optimized_locking_on] [bit] NULL
 	CONSTRAINT PK_databases PRIMARY KEY CLUSTERED ([db_id]),
 	CONSTRAINT FK_databases_instances FOREIGN KEY ([i_id])REFERENCES [dbo].[instances] ([i_id]),
 	CONSTRAINT UC_databases_name_iId UNIQUE ([name], [i_id]))
@@ -274,7 +283,7 @@ BEGIN
 	CONSTRAINT FK_sysjobs_instances FOREIGN KEY ([i_id]) REFERENCES [dbo].[instances] ([i_id]),
 	CONSTRAINT UC_sysjobs_jobid_iId UNIQUE ([job_id], [i_id]))
 END;
-
+/*
 /*Create table [CHECK_CONSTRAINTS]*/
 IF NOT EXISTS 
 (
@@ -1332,3 +1341,4 @@ FROM
 */
 
 USE master;
+*/

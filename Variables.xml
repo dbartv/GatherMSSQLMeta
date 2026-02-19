@@ -1,5 +1,5 @@
 <General>
-	<MetaServerName>LAPTOP-LUC3H6T4</MetaServerName>
+	<MetaServerName>.\V01</MetaServerName>
 	<MetaDb>MDB</MetaDb>
 	<CsvDelimiter>,</CsvDelimiter>
   <OutputSchema>dbo</OutputSchema>

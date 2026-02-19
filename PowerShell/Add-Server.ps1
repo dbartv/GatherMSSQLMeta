@@ -23,7 +23,7 @@ function Import-Server
   }
   catch 
   {
-    Write-TerminatingError -FileName $LogFile -ErrorObject $_
+    \Write-TerminatingError -FileName $LogFile -ErrorObject $_
   }
   Return $Result
 }
