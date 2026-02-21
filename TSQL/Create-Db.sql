@@ -242,7 +242,7 @@ BEGIN
 	CONSTRAINT UC_configurations_name_iId UNIQUE ([name], [i_id]))
 END;
 
-/**/
+/*Create sysjobs table*/
 
 IF NOT EXISTS 
 (
@@ -283,695 +283,75 @@ BEGIN
 	CONSTRAINT FK_sysjobs_instances FOREIGN KEY ([i_id]) REFERENCES [dbo].[instances] ([i_id]),
 	CONSTRAINT UC_sysjobs_jobid_iId UNIQUE ([job_id], [i_id]))
 END;
+
+/*dm_os_sys_info table*/
+CREATE TABLE [dbo].[dm_os_sys_info](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[i_id] [int] NOT NULL,
+	[cpu_ticks] [bigint] NOT NULL,
+	[ms_ticks] [bigint] NOT NULL,
+	[cpu_count] [int] NOT NULL,
+	[hyperthread_ratio] [int] NOT NULL,
+	[physical_memory_kb] [bigint] NOT NULL,
+	[virtual_memory_kb] [bigint] NOT NULL,
+	[committed_kb] [bigint] NOT NULL,
+	[committed_target_kb] [bigint] NOT NULL,
+	[visible_target_kb] [bigint] NOT NULL,
+	[stack_size_in_bytes] [int] NOT NULL,
+	[os_quantum] [bigint] NOT NULL,
+	[os_error_mode] [int] NOT NULL,
+	[os_priority_class] [int] NULL,
+	[max_workers_count] [int] NOT NULL,
+	[scheduler_count] [int] NOT NULL,
+	[scheduler_total_count] [int] NOT NULL,
+	[deadlock_monitor_serial_number] [int] NOT NULL,
+	[sqlserver_start_time_ms_ticks] [bigint] NOT NULL,
+	[sqlserver_start_time] [datetime] NOT NULL,
+	[affinity_type] [int] NOT NULL,
+	[affinity_type_desc] [nvarchar](60) NOT NULL,
+	[process_kernel_time_ms] [bigint] NOT NULL,
+	[process_user_time_ms] [bigint] NOT NULL,
+	[time_source] [int] NOT NULL,
+	[time_source_desc] [nvarchar](60) NOT NULL,
+	[virtual_machine_type] [int] NOT NULL,
+	[virtual_machine_type_desc] [nvarchar](60) NOT NULL,
+	[softnuma_configuration] [int] NOT NULL,
+	[softnuma_configuration_desc] [nvarchar](60) NOT NULL,
+	[process_physical_affinity] [nvarchar](3072) NOT NULL,
+	[sql_memory_model] [int] NOT NULL,
+	[sql_memory_model_desc] [nvarchar](60) NOT NULL,
+	[socket_count] [int] NOT NULL,
+	[cores_per_socket] [int] NOT NULL,
+	[numa_node_count] [int] NOT NULL,
+	[container_type] [int] NOT NULL,
+	[container_type_desc] [nvarchar](60) NOT NULL,
+	CONSTRAINT [PK_dm_os_sys_info] PRIMARY KEY CLUSTERED 
+	(
+		[id] ASC
+	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+	 CONSTRAINT [UC_dm_os_sys_info_iId] UNIQUE NONCLUSTERED 
+	(
+		[i_id] ASC
+	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE [dbo].[dm_os_sys_info]  WITH NOCHECK ADD  CONSTRAINT [FK_dm_os_sys_info_instances] FOREIGN KEY([i_id])
+REFERENCES [dbo].[instances] ([i_id])
+ALTER TABLE [dbo].[dm_os_sys_info] CHECK CONSTRAINT [FK_dm_os_sys_info_instances]
+GO
+
 /*
-/*Create table [CHECK_CONSTRAINTS]*/
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-			s.[name] = 'dbo' AND
-			t.[name] = 'CHECK_CONSTRAINTS'
-			
-)
-BEGIN
-	CREATE TABLE [dbo].[CHECK_CONSTRAINTS](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[CONSTRAINT_CATALOG] [nvarchar] (128) NULL,
-	[CONSTRAINT_SCHEMA] [nvarchar] (128) NULL,
-	[CONSTRAINT_NAME] [sysname] NULL,
-	[CHECK_CLAUSE] [nvarchar] (4000) NULL,
-	CONSTRAINT PK_CHECK_CONSTRAINTS PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_CHECK_CONSTRAINTS_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-
-/*Create table [COLUMN_DOMAIN_USAGE]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'COLUMN_DOMAIN_USAGE'
-)
-BEGIN
-	CREATE TABLE [dbo].[COLUMN_DOMAIN_USAGE](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[DOMAIN_CATALOG] [nvarchar] (128) NULL,
-	[DOMAIN_SCHEMA] [nvarchar] (128) NULL,
-	[DOMAIN_NAME] [sysname] NULL,
-	[TABLE_CATALOG] [nvarchar] (128) NULL,
-	[TABLE_SCHEMA] [nvarchar] (128) NULL,
-	[TABLE_NAME] [sysname] NULL,
-	[COLUMN_NAME] [sysname] NULL
-	CONSTRAINT PK_COLUMN_DOMAIN_USAGE PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_COLUMN_DOMAIN_USAGE_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-
-/*Create table [COLUMN_PRIVILEGES]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'COLUMN_PRIVILEGES'
-)
-BEGIN
-	CREATE TABLE [dbo].[COLUMN_PRIVILEGES](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[GRANTOR] [nvarchar] (128) NULL,
-	[GRANTEE] [nvarchar] (128) NULL,
-	[TABLE_CATALOG] [nvarchar] (128) NULL,
-	[TABLE_SCHEMA] [nvarchar] (128) NULL,
-	[TABLE_NAME] [sysname] NULL,
-	[COLUMN_NAME] [sysname] NULL,
-	[PRIVILEGE_TYPE] [varchar] (10) NULL,
-	[IS_GRANTABLE] [varchar] (3) NULL
-	CONSTRAINT PK_COLUMN_PRIVILEGES PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_COLUMN_PRIVILEGES_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [COLUMNS]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'COLUMNS'
-)
-BEGIN
-	CREATE TABLE [dbo].[COLUMNS](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[TABLE_CATALOG] [nvarchar] (128) NULL,
-	[TABLE_SCHEMA] [nvarchar] (128) NULL,
-	[TABLE_NAME] [sysname] NULL,
-	[COLUMN_NAME] [sysname] NULL,
-	[ORDINAL_POSITION] [int] NULL,
-	[COLUMN_DEFAULT] [nvarchar] (4000) NULL,
-	[IS_NULLABLE] [varchar] (3) NULL,
-	[DATA_TYPE] [nvarchar] (128) NULL,
-	[CHARACTER_MAXIMUM_LENGTH] [int] NULL,
-	[CHARACTER_OCTET_LENGTH] [int] NULL,
-	[NUMERIC_PRECISION] [tinyint] NULL,
-	[NUMERIC_PRECISION_RADIX] [smallint] NULL,
-	[NUMERIC_SCALE] [int] NULL,
-	[DATETIME_PRECISION] [smallint] NULL,
-	[CHARACTER_SET_CATALOG] [sysname] NULL,
-	[CHARACTER_SET_SCHEMA] [sysname] NULL,
-	[CHARACTER_SET_NAME] [sysname] NULL,
-	[COLLATION_CATALOG] [sysname] NULL,
-	[COLLATION_SCHEMA] [sysname] NULL,
-	[COLLATION_NAME] [sysname] NULL,
-	[DOMAIN_CATALOG] [sysname] NULL,
-	[DOMAIN_SCHEMA] [sysname] NULL,
-	[DOMAIN_NAME] [sysname] NULL
-	CONSTRAINT PK_COLUMNS PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_COLUMNS_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [CONSTRAINT_COLUMN_USAGE]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'CONSTRAINT_COLUMN_USAGE'
-)
-BEGIN
-	CREATE TABLE [dbo].[CONSTRAINT_COLUMN_USAGE](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[TABLE_CATALOG] [nvarchar] (128) NULL,
-	[TABLE_SCHEMA] [nvarchar] (128) NULL,
-	[TABLE_NAME] [sysname] NULL,
-	[COLUMN_NAME] [nvarchar] (128) NULL,
-	[CONSTRAINT_CATALOG] [nvarchar] (128) NULL,
-	[CONSTRAINT_SCHEMA] [nvarchar] (128) NULL,
-	[CONSTRAINT_NAME] [sysname] NULL
-	CONSTRAINT PK_CONSTRAINT_COLUMN_USAGE PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_CONSTRAINT_COLUMN_USAGE_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [CONSTRAINT_TABLE_USAGE]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'CONSTRAINT_TABLE_USAGE'
-)
-BEGIN
-	CREATE TABLE [dbo].[CONSTRAINT_TABLE_USAGE](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[TABLE_CATALOG] [nvarchar] (128) NULL,
-	[TABLE_SCHEMA] [nvarchar] (128) NULL,
-	[TABLE_NAME] [sysname] NULL,
-	[CONSTRAINT_CATALOG] [nvarchar] (128) NULL,
-	[CONSTRAINT_SCHEMA] [nvarchar] (128) NULL,
-	[CONSTRAINT_NAME] [sysname] NULL
-	CONSTRAINT PK_CONSTRAINT_TABLE_USAGE PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_CONSTRAINT_TABLE_USAGE_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [DOMAIN_CONSTRAINTS]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'DOMAIN_CONSTRAINTS'
-)
-BEGIN
-	CREATE TABLE [dbo].[DOMAIN_CONSTRAINTS](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[CONSTRAINT_CATALOG] [nvarchar] (128) NULL,
-	[CONSTRAINT_SCHEMA] [nvarchar] (128) NULL,
-	[CONSTRAINT_NAME] [sysname] NULL,
-	[DOMAIN_CATALOG] [nvarchar] (128) NULL,
-	[DOMAIN_SCHEMA] [nvarchar] (128) NULL,
-	[DOMAIN_NAME] [sysname] NULL,
-	[IS_DEFERRABLE] [varchar] (2) NULL,
-	[INITIALLY_DEFERRED] [varchar] (2) NULL
-	CONSTRAINT PK_DOMAIN_CONSTRAINTS PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_DOMAIN_CONSTRAINTS_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [DOMAINS]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'DOMAINS'
-)
-BEGIN
-	CREATE TABLE [dbo].[DOMAINS](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[DOMAIN_CATALOG] [nvarchar] (128) NULL,
-	[DOMAIN_SCHEMA] [nvarchar] (128) NULL,
-	[DOMAIN_NAME] [sysname] NULL,
-	[DATA_TYPE] [nvarchar] (128) NULL,
-	[CHARACTER_MAXIMUM_LENGTH] [int] NULL,
-	[CHARACTER_OCTET_LENGTH] [int] NULL,
-	[COLLATION_CATALOG] [sysname] NULL,
-	[COLLATION_SCHEMA] [sysname] NULL,
-	[COLLATION_NAME] [sysname] NULL,
-	[CHARACTER_SET_CATALOG] [sysname] NULL,
-	[CHARACTER_SET_SCHEMA] [sysname] NULL,
-	[CHARACTER_SET_NAME] [sysname] NULL,
-	[NUMERIC_PRECISION] [tinyint] NULL,
-	[NUMERIC_PRECISION_RADIX] [smallint] NULL,
-	[NUMERIC_SCALE] [int] NULL,
-	[DATETIME_PRECISION] [smallint] NULL,
-	[DOMAIN_DEFAULT] [nvarchar] (4000) NULL
-	CONSTRAINT PK_DOMAINS PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_DOMAINS_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [KEY_COLUMN_USAGE]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'KEY_COLUMN_USAGE'
-)
-BEGIN
-	CREATE TABLE [dbo].[KEY_COLUMN_USAGE](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[CONSTRAINT_CATALOG] [nvarchar] (128) NULL,
-	[CONSTRAINT_SCHEMA] [nvarchar] (128) NULL,
-	[CONSTRAINT_NAME] [sysname] NULL,
-	[TABLE_CATALOG] [nvarchar] (128) NULL,
-	[TABLE_SCHEMA] [nvarchar] (128) NULL,
-	[TABLE_NAME] [sysname] NULL,
-	[COLUMN_NAME] [nvarchar] (128) NULL,
-	[ORDINAL_POSITION] [int] NULL
-	CONSTRAINT PK_KEY_COLUMN_USAGE PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_KEY_COLUMN_USAGE_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [PARAMETERS]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'PARAMETERS'
-)
-BEGIN
-	CREATE TABLE [dbo].[PARAMETERS](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[SPECIFIC_CATALOG] [nvarchar] (128) NULL,
-	[SPECIFIC_SCHEMA] [nvarchar] (128) NULL,
-	[SPECIFIC_NAME] [sysname] NULL,
-	[ORDINAL_POSITION] [int] NULL,
-	[PARAMETER_MODE] [nvarchar] (10) NULL,
-	[IS_RESULT] [nvarchar] (10) NULL,
-	[AS_LOCATOR] [nvarchar] (10) NULL,
-	[PARAMETER_NAME] [sysname] NULL,
-	[DATA_TYPE] [nvarchar] (128) NULL,
-	[CHARACTER_MAXIMUM_LENGTH] [int] NULL,
-	[CHARACTER_OCTET_LENGTH] [int] NULL,
-	[COLLATION_CATALOG] [sysname] NULL,
-	[COLLATION_SCHEMA] [sysname] NULL,
-	[COLLATION_NAME] [sysname] NULL,
-	[CHARACTER_SET_CATALOG] [sysname] NULL,
-	[CHARACTER_SET_SCHEMA] [sysname] NULL,
-	[CHARACTER_SET_NAME] [sysname] NULL,
-	[NUMERIC_PRECISION] [tinyint] NULL,
-	[NUMERIC_PRECISION_RADIX] [smallint] NULL,
-	[NUMERIC_SCALE] [int] NULL,
-	[DATETIME_PRECISION] [smallint] NULL,
-	[INTERVAL_TYPE] [nvarchar] (30) NULL,
-	[INTERVAL_PRECISION] [smallint] NULL,
-	[USER_DEFINED_TYPE_CATALOG] [sysname] NULL,
-	[USER_DEFINED_TYPE_SCHEMA] [sysname] NULL,
-	[USER_DEFINED_TYPE_NAME] [sysname] NULL,
-	[SCOPE_CATALOG] [sysname] NULL,
-	[SCOPE_SCHEMA] [sysname] NULL,
-	[SCOPE_NAME] [sysname] NULL
-	CONSTRAINT PK_PARAMETERS PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_PARAMETERS_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [REFERENTIAL_CONSTRAINTS]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'REFERENTIAL_CONSTRAINTS'
-)
-BEGIN
-	CREATE TABLE [dbo].[REFERENTIAL_CONSTRAINTS](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[CONSTRAINT_CATALOG] [nvarchar] (128) NULL,
-	[CONSTRAINT_SCHEMA] [nvarchar] (128) NULL,
-	[CONSTRAINT_NAME] [sysname] NULL,
-	[UNIQUE_CONSTRAINT_CATALOG] [nvarchar] (128) NULL,
-	[UNIQUE_CONSTRAINT_SCHEMA] [nvarchar] (128) NULL,
-	[UNIQUE_CONSTRAINT_NAME] [sysname] NULL,
-	[MATCH_OPTION] [varchar] (7) NULL,
-	[UPDATE_RULE] [varchar] (11) NULL,
-	[DELETE_RULE] [varchar] (11) NULL
-	CONSTRAINT PK_REFERENTIAL_CONSTRAINTS PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_REFERENTIAL_CONSTRAINTS_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [ROUTINE_COLUMNS]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'ROUTINE_COLUMNS'
-)
-BEGIN
-	CREATE TABLE [dbo].[ROUTINE_COLUMNS](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[TABLE_CATALOG] [nvarchar] (128) NULL,
-	[TABLE_SCHEMA] [nvarchar] (128) NULL,
-	[TABLE_NAME] [sysname] NULL,
-	[COLUMN_NAME] [sysname] NULL,
-	[ORDINAL_POSITION] [int] NULL,
-	[COLUMN_DEFAULT] [nvarchar] (4000) NULL,
-	[IS_NULLABLE] [varchar] (3) NULL,
-	[DATA_TYPE] [nvarchar] (128) NULL,
-	[CHARACTER_MAXIMUM_LENGTH] [int] NULL,
-	[CHARACTER_OCTET_LENGTH] [int] NULL,
-	[NUMERIC_PRECISION] [tinyint] NULL,
-	[NUMERIC_PRECISION_RADIX] [smallint] NULL,
-	[NUMERIC_SCALE] [int] NULL,
-	[DATETIME_PRECISION] [smallint] NULL,
-	[CHARACTER_SET_CATALOG] [sysname] NULL,
-	[CHARACTER_SET_SCHEMA] [sysname] NULL,
-	[CHARACTER_SET_NAME] [sysname] NULL,
-	[COLLATION_CATALOG] [sysname] NULL,
-	[COLLATION_SCHEMA] [sysname] NULL,
-	[COLLATION_NAME] [sysname] NULL,
-	[DOMAIN_CATALOG] [sysname] NULL,
-	[DOMAIN_SCHEMA] [sysname] NULL,
-	[DOMAIN_NAME] [sysname] NULL
-	CONSTRAINT PK_ROUTINE_COLUMNS PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_ROUTINE_COLUMNS_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [ROUTINES]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'ROUTINES'
-)
-BEGIN
-	CREATE TABLE [dbo].[ROUTINES](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[SPECIFIC_CATALOG] [nvarchar] (128) NULL,
-	[SPECIFIC_SCHEMA] [nvarchar] (128) NULL,
-	[SPECIFIC_NAME] [sysname] NULL,
-	[ROUTINE_CATALOG] [nvarchar] (128) NULL,
-	[ROUTINE_SCHEMA] [nvarchar] (128) NULL,
-	[ROUTINE_NAME] [sysname] NULL,
-	[ROUTINE_TYPE] [nvarchar] (20) NULL,
-	[MODULE_CATALOG] [sysname] NULL,
-	[MODULE_SCHEMA] [sysname] NULL,
-	[MODULE_NAME] [sysname] NULL,
-	[UDT_CATALOG] [sysname] NULL,
-	[UDT_SCHEMA] [sysname] NULL,
-	[UDT_NAME] [sysname] NULL,
-	[DATA_TYPE] [sysname] NULL,
-	[CHARACTER_MAXIMUM_LENGTH] [int] NULL,
-	[CHARACTER_OCTET_LENGTH] [int] NULL,
-	[COLLATION_CATALOG] [sysname] NULL,
-	[COLLATION_SCHEMA] [sysname] NULL,
-	[COLLATION_NAME] [sysname] NULL,
-	[CHARACTER_SET_CATALOG] [sysname] NULL,
-	[CHARACTER_SET_SCHEMA] [sysname] NULL,
-	[CHARACTER_SET_NAME] [sysname] NULL,
-	[NUMERIC_PRECISION] [tinyint] NULL,
-	[NUMERIC_PRECISION_RADIX] [smallint] NULL,
-	[NUMERIC_SCALE] [int] NULL,
-	[DATETIME_PRECISION] [smallint] NULL,
-	[INTERVAL_TYPE] [nvarchar] (30) NULL,
-	[INTERVAL_PRECISION] [smallint] NULL,
-	[TYPE_UDT_CATALOG] [sysname] NULL,
-	[TYPE_UDT_SCHEMA] [sysname] NULL,
-	[TYPE_UDT_NAME] [sysname] NULL,
-	[SCOPE_CATALOG] [sysname] NULL,
-	[SCOPE_SCHEMA] [sysname] NULL,
-	[SCOPE_NAME] [sysname] NULL,
-	[MAXIMUM_CARDINALITY] [bigint] NULL,
-	[DTD_IDENTIFIER] [sysname] NULL,
-	[ROUTINE_BODY] [nvarchar] (30) NULL,
-	[ROUTINE_DEFINITION] [nvarchar] (4000) NULL,
-	[EXTERNAL_NAME] [sysname] NULL,
-	[EXTERNAL_LANGUAGE] [nvarchar] (30) NULL,
-	[PARAMETER_STYLE] [nvarchar] (30) NULL,
-	[IS_DETERMINISTIC] [nvarchar] (10) NULL,
-	[SQL_DATA_ACCESS] [nvarchar] (30) NULL,
-	[IS_NULL_CALL] [nvarchar] (10) NULL,
-	[SQL_PATH] [sysname] NULL,
-	[SCHEMA_LEVEL_ROUTINE] [nvarchar] (10) NULL,
-	[MAX_DYNAMIC_RESULT_SETS] [smallint] NULL,
-	[IS_USER_DEFINED_CAST] [nvarchar] (10) NULL,
-	[IS_IMPLICITLY_INVOCABLE] [nvarchar] (10) NULL,
-	[CREATED] [datetime] NULL,
-	[LAST_ALTERED] [datetime] NULL
-	CONSTRAINT PK_ROUTINES PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_ROUTINES_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [SCHEMATA]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'SCHEMATA'
-)
-BEGIN
-	CREATE TABLE [dbo].[SCHEMATA](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[CATALOG_NAME] [nvarchar] (128) NULL,
-	[SCHEMA_NAME] [sysname] NULL,
-	[SCHEMA_OWNER] [nvarchar] (128) NULL,
-	[DEFAULT_CHARACTER_SET_CATALOG] [sysname] NULL,
-	[DEFAULT_CHARACTER_SET_SCHEMA] [sysname] NULL,
-	[DEFAULT_CHARACTER_SET_NAME] [sysname] NULL
-	CONSTRAINT PK_SCHEMATA PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_SCHEMATA_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [SEQUENCES]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'SEQUENCES'
-)
-BEGIN
-	CREATE TABLE [dbo].[SEQUENCES](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[SEQUENCE_CATALOG] [nvarchar] (128) NULL,
-	[SEQUENCE_SCHEMA] [nvarchar] (128) NULL,
-	[SEQUENCE_NAME] [sysname] NULL,
-	[DATA_TYPE] [nvarchar] (128) NULL,
-	[NUMERIC_PRECISION] [tinyint] NULL,
-	[NUMERIC_PRECISION_RADIX] [smallint] NULL,
-	[NUMERIC_SCALE] [int] NULL,
-	[START_VALUE] [sql_variant] NULL,
-	[MINIMUM_VALUE] [sql_variant] NULL,
-	[MAXIMUM_VALUE] [sql_variant] NULL,
-	[INCREMENT] [sql_variant] NULL,
-	[CYCLE_OPTION] [bit] NULL,
-	[DECLARED_DATA_TYPE] [sysname] NULL,
-	[DECLARED_NUMERIC_PRECISION] [tinyint] NULL,
-	[DECLARED_NUMERIC_SCALE] [tinyint] NULL
-	CONSTRAINT PK_SEQUENCES PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_SEQUENCES_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [TABLE_CONSTRAINTS]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'TABLE_CONSTRAINTS'
-)
-BEGIN
-	CREATE TABLE [dbo].[TABLE_CONSTRAINTS](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[CONSTRAINT_CATALOG] [nvarchar] (128) NULL,
-	[CONSTRAINT_SCHEMA] [nvarchar] (128) NULL,
-	[CONSTRAINT_NAME] [sysname] NULL,
-	[TABLE_CATALOG] [nvarchar] (128) NULL,
-	[TABLE_SCHEMA] [nvarchar] (128) NULL,
-	[TABLE_NAME] [sysname] NULL,
-	[CONSTRAINT_TYPE] [varchar] (11) NULL,
-	[IS_DEFERRABLE] [varchar] (2) NULL,
-	[INITIALLY_DEFERRED] [varchar] (2) NULL
-	CONSTRAINT PK_TABLE_CONSTRAINTS PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_TABLE_CONSTRAINTS_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [TABLE_PRIVILEGES]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'TABLE_PRIVILEGES'
-)
-BEGIN
-	CREATE TABLE [dbo].[TABLE_PRIVILEGES](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[GRANTOR] [nvarchar] (128) NULL,
-	[GRANTEE] [nvarchar] (128) NULL,
-	[TABLE_CATALOG] [nvarchar] (128) NULL,
-	[TABLE_SCHEMA] [nvarchar] (128) NULL,
-	[TABLE_NAME] [sysname] NULL,
-	[PRIVILEGE_TYPE] [varchar] (10) NULL,
-	[IS_GRANTABLE] [varchar] (3) NULL
-	CONSTRAINT PK_TABLE_PRIVILEGES PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_TABLE_PRIVILEGES_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [TABLES]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'TABLES'
-)
-BEGIN
-	CREATE TABLE [dbo].[TABLES](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[TABLE_CATALOG] [nvarchar] (128) NULL,
-	[TABLE_SCHEMA] [sysname] NULL,
-	[TABLE_NAME] [sysname] NULL,
-	[TABLE_TYPE] [varchar] (10) NULL
-	CONSTRAINT PK_TABLES PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_TABLES_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-
-/*Create table [VIEW_COLUMN_USAGE]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'VIEW_COLUMN_USAGE'
-)
-BEGIN
-	CREATE TABLE [dbo].[VIEW_COLUMN_USAGE](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],[VIEW_CATALOG] [nvarchar] (128) NULL,
-	[VIEW_SCHEMA] [nvarchar] (128) NULL,
-	[VIEW_NAME] [sysname] NULL,
-	[TABLE_CATALOG] [nvarchar] (128) NULL,
-	[TABLE_SCHEMA] [nvarchar] (128) NULL,
-	[TABLE_NAME] [sysname] NULL,
-	[COLUMN_NAME] [sysname] NULL
-	CONSTRAINT PK_VIEW_COLUMN_USAGE PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_VIEW_COLUMN_USAGE_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [VIEW_TABLE_USAGE]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'VIEW_TABLE_USAGE'
-)
-BEGIN
-	CREATE TABLE [dbo].[VIEW_TABLE_USAGE](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[VIEW_CATALOG] [nvarchar] (128) NULL,
-	[VIEW_SCHEMA] [nvarchar] (128) NULL,
-	[VIEW_NAME] [sysname] NULL,
-	[TABLE_CATALOG] [nvarchar] (128) NULL,
-	[TABLE_SCHEMA] [nvarchar] (128) NULL,
-	[TABLE_NAME] [sysname] NULL
-	CONSTRAINT PK_VIEW_TABLE_USAGE PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_VIEW_TABLE_USAGE_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-
-/*Create table [VIEWS]*/
-
-IF NOT EXISTS 
-(
-	SELECT s.* FROM 
-		sys.tables t 
-		INNER JOIN sys.schemas s ON t.[schema_id] = s.[schema_id]
-	WHERE
-		s.[name] = 'dbo' AND
-		t.[name] = 'VIEWS'
-)
-BEGIN
-	CREATE TABLE [dbo].[VIEWS](
-	[id] [int] IDENTITY (1,1) NOT NULL,
-	[db_id] [int],
-	[TABLE_CATALOG] [nvarchar] (128) NULL,
-	[TABLE_SCHEMA] [nvarchar] (128) NULL,
-	[TABLE_NAME] [sysname] NULL,
-	[VIEW_DEFINITION] [nvarchar] (4000) NULL,
-	[CHECK_OPTION] [varchar] (7) NULL,
-	[IS_UPDATABLE] [varchar] (2) NULL
-	CONSTRAINT PK_VIEWS PRIMARY KEY CLUSTERED ([id]),
-	CONSTRAINT FK_VIEWS_databases FOREIGN KEY ([db_id]) REFERENCES [dbo].[databases] ([db_id]))
-END;
-GO
-/* 
 =============================================
-SP to UPDATE serverproperties in the instances table
+Create SP to UPDATE serverproperties in the instances table
 =============================================
  */
+ /*
+
+USE MDB
+GO
 CREATE OR ALTER   PROCEDURE [dbo].[update_serverproperties]
-/*Parameters*/
+
 @i_id [int],
 @BuildClrVersion nvarchar(128),
 @Collation nvarchar(128),
@@ -1084,261 +464,31 @@ BEGIN
 END
 GO
 
-/*Create a view with all the databases
-CREATE OR ALTER VIEW dbo.vw_databases
-AS 
-
-SELECT 
-[dbo].[databases2016].[db_id],
-[dbo].[databases2016].[i_id],
-[dbo].[databases2016].[name],
-[dbo].[databases2016].[database_id],
-[dbo].[databases2016].[source_database_id],
-[dbo].[databases2016].[owner_sid],
-[dbo].[databases2016].[create_date],
-[dbo].[databases2016].[compatibility_level],
-[dbo].[databases2016].[collation_name],
-[dbo].[databases2016].[user_access],
-[dbo].[databases2016].[user_access_desc],
-[dbo].[databases2016].[is_read_only],
-[dbo].[databases2016].[is_auto_close_on],
-[dbo].[databases2016].[is_auto_shrink_on],
-[dbo].[databases2016].[state],
-[dbo].[databases2016].[state_desc],
-[dbo].[databases2016].[is_in_standby],
-[dbo].[databases2016].[is_cleanly_shutdown],
-[dbo].[databases2016].[is_supplemental_logging_enabled],
-[dbo].[databases2016].[snapshot_isolation_state],
-[dbo].[databases2016].[snapshot_isolation_state_desc],
-[dbo].[databases2016].[is_read_committed_snapshot_on],
-[dbo].[databases2016].[recovery_model],
-[dbo].[databases2016].[recovery_model_desc],
-[dbo].[databases2016].[page_verify_option],
-[dbo].[databases2016].[page_verify_option_desc],
-[dbo].[databases2016].[is_auto_create_stats_on],
-[dbo].[databases2016].[is_auto_create_stats_incremental_on],
-[dbo].[databases2016].[is_auto_update_stats_on],
-[dbo].[databases2016].[is_auto_update_stats_async_on],
-[dbo].[databases2016].[is_ansi_null_default_on],
-[dbo].[databases2016].[is_ansi_nulls_on],
-[dbo].[databases2016].[is_ansi_padding_on],
-[dbo].[databases2016].[is_ansi_warnings_on],
-[dbo].[databases2016].[is_arithabort_on],
-[dbo].[databases2016].[is_concat_null_yields_null_on],
-[dbo].[databases2016].[is_numeric_roundabort_on],
-[dbo].[databases2016].[is_quoted_identifier_on],
-[dbo].[databases2016].[is_recursive_triggers_on],
-[dbo].[databases2016].[is_cursor_close_on_commit_on],
-[dbo].[databases2016].[is_local_cursor_default],
-[dbo].[databases2016].[is_fulltext_enabled],
-[dbo].[databases2016].[is_trustworthy_on],
-[dbo].[databases2016].[is_db_chaining_on],
-[dbo].[databases2016].[is_parameterization_forced],
-[dbo].[databases2016].[is_master_key_encrypted_by_server],
-[dbo].[databases2016].[is_query_store_on],
-[dbo].[databases2016].[is_published],
-[dbo].[databases2016].[is_subscribed],
-[dbo].[databases2016].[is_merge_published],
-[dbo].[databases2016].[is_distributor],
-[dbo].[databases2016].[is_sync_with_backup],
-[dbo].[databases2016].[service_broker_guid],
-[dbo].[databases2016].[is_broker_enabled],
-[dbo].[databases2016].[log_reuse_wait],
-[dbo].[databases2016].[log_reuse_wait_desc],
-[dbo].[databases2016].[is_date_correlation_on],
-[dbo].[databases2016].[is_cdc_enabled],
-[dbo].[databases2016].[is_encrypted],
-[dbo].[databases2016].[is_honor_broker_priority_on],
-[dbo].[databases2016].[replica_id],
-[dbo].[databases2016].[group_database_id],
-[dbo].[databases2016].[resource_pool_id],
-[dbo].[databases2016].[default_language_lcid],
-[dbo].[databases2016].[default_language_name],
-[dbo].[databases2016].[default_fulltext_language_lcid],
-[dbo].[databases2016].[default_fulltext_language_name],
-[dbo].[databases2016].[is_nested_triggers_on],
-[dbo].[databases2016].[is_transform_noise_words_on],
-[dbo].[databases2016].[two_digit_year_cutoff],
-[dbo].[databases2016].[containment],
-[dbo].[databases2016].[containment_desc],
-[dbo].[databases2016].[target_recovery_time_in_seconds],
-[dbo].[databases2016].[delayed_durability],
-[dbo].[databases2016].[delayed_durability_desc],
-[dbo].[databases2016].[is_memory_optimized_elevate_to_snapshot_on],
-[dbo].[databases2016].[is_federation_member],
-[dbo].[databases2016].[is_remote_data_archive_enabled],
-[dbo].[databases2016].[is_mixed_page_allocation_on]
-FROM 
-[dbo].[databases2016]
-
-UNION ALL
-SELECT 
-[dbo].[databases2019].[db_id],
-[dbo].[databases2019].[i_id],
-[dbo].[databases2019].[name],
-[dbo].[databases2019].[database_id],
-[dbo].[databases2019].[source_database_id],
-[dbo].[databases2019].[owner_sid],
-[dbo].[databases2019].[create_date],
-[dbo].[databases2019].[compatibility_level],
-[dbo].[databases2019].[collation_name],
-[dbo].[databases2019].[user_access],
-[dbo].[databases2019].[user_access_desc],
-[dbo].[databases2019].[is_read_only],
-[dbo].[databases2019].[is_auto_close_on],
-[dbo].[databases2019].[is_auto_shrink_on],
-[dbo].[databases2019].[state],
-[dbo].[databases2019].[state_desc],
-[dbo].[databases2019].[is_in_standby],
-[dbo].[databases2019].[is_cleanly_shutdown],
-[dbo].[databases2019].[is_supplemental_logging_enabled],
-[dbo].[databases2019].[snapshot_isolation_state],
-[dbo].[databases2019].[snapshot_isolation_state_desc],
-[dbo].[databases2019].[is_read_committed_snapshot_on],
-[dbo].[databases2019].[recovery_model],
-[dbo].[databases2019].[recovery_model_desc],
-[dbo].[databases2019].[page_verify_option],
-[dbo].[databases2019].[page_verify_option_desc],
-[dbo].[databases2019].[is_auto_create_stats_on],
-[dbo].[databases2019].[is_auto_create_stats_incremental_on],
-[dbo].[databases2019].[is_auto_update_stats_on],
-[dbo].[databases2019].[is_auto_update_stats_async_on],
-[dbo].[databases2019].[is_ansi_null_default_on],
-[dbo].[databases2019].[is_ansi_nulls_on],
-[dbo].[databases2019].[is_ansi_padding_on],
-[dbo].[databases2019].[is_ansi_warnings_on],
-[dbo].[databases2019].[is_arithabort_on],
-[dbo].[databases2019].[is_concat_null_yields_null_on],
-[dbo].[databases2019].[is_numeric_roundabort_on],
-[dbo].[databases2019].[is_quoted_identifier_on],
-[dbo].[databases2019].[is_recursive_triggers_on],
-[dbo].[databases2019].[is_cursor_close_on_commit_on],
-[dbo].[databases2019].[is_local_cursor_default],
-[dbo].[databases2019].[is_fulltext_enabled],
-[dbo].[databases2019].[is_trustworthy_on],
-[dbo].[databases2019].[is_db_chaining_on],
-[dbo].[databases2019].[is_parameterization_forced],
-[dbo].[databases2019].[is_master_key_encrypted_by_server],
-[dbo].[databases2019].[is_query_store_on],
-[dbo].[databases2019].[is_published],
-[dbo].[databases2019].[is_subscribed],
-[dbo].[databases2019].[is_merge_published],
-[dbo].[databases2019].[is_distributor],
-[dbo].[databases2019].[is_sync_with_backup],
-[dbo].[databases2019].[service_broker_guid],
-[dbo].[databases2019].[is_broker_enabled],
-[dbo].[databases2019].[log_reuse_wait],
-[dbo].[databases2019].[log_reuse_wait_desc],
-[dbo].[databases2019].[is_date_correlation_on],
-[dbo].[databases2019].[is_cdc_enabled],
-[dbo].[databases2019].[is_encrypted],
-[dbo].[databases2019].[is_honor_broker_priority_on],
-[dbo].[databases2019].[replica_id],
-[dbo].[databases2019].[group_database_id],
-[dbo].[databases2019].[resource_pool_id],
-[dbo].[databases2019].[default_language_lcid],
-[dbo].[databases2019].[default_language_name],
-[dbo].[databases2019].[default_fulltext_language_lcid],
-[dbo].[databases2019].[default_fulltext_language_name],
-[dbo].[databases2019].[is_nested_triggers_on],
-[dbo].[databases2019].[is_transform_noise_words_on],
-[dbo].[databases2019].[two_digit_year_cutoff],
-[dbo].[databases2019].[containment],
-[dbo].[databases2019].[containment_desc],
-[dbo].[databases2019].[target_recovery_time_in_seconds],
-[dbo].[databases2019].[delayed_durability],
-[dbo].[databases2019].[delayed_durability_desc],
-[dbo].[databases2019].[is_memory_optimized_elevate_to_snapshot_on],
-[dbo].[databases2019].[is_federation_member],
-[dbo].[databases2019].[is_remote_data_archive_enabled],
-[dbo].[databases2019].[is_mixed_page_allocation_on]
-FROM 
-[dbo].[databases2019] 
-
-UNION ALL
-SELECT 
-[dbo].[databases2022].[db_id],
-[dbo].[databases2022].[i_id],
-[dbo].[databases2022].[name],
-[dbo].[databases2022].[database_id],
-[dbo].[databases2022].[source_database_id],
-[dbo].[databases2022].[owner_sid],
-[dbo].[databases2022].[create_date],
-[dbo].[databases2022].[compatibility_level],
-[dbo].[databases2022].[collation_name],
-[dbo].[databases2022].[user_access],
-[dbo].[databases2022].[user_access_desc],
-[dbo].[databases2022].[is_read_only],
-[dbo].[databases2022].[is_auto_close_on],
-[dbo].[databases2022].[is_auto_shrink_on],
-[dbo].[databases2022].[state],
-[dbo].[databases2022].[state_desc],
-[dbo].[databases2022].[is_in_standby],
-[dbo].[databases2022].[is_cleanly_shutdown],
-[dbo].[databases2022].[is_supplemental_logging_enabled],
-[dbo].[databases2022].[snapshot_isolation_state],
-[dbo].[databases2022].[snapshot_isolation_state_desc],
-[dbo].[databases2022].[is_read_committed_snapshot_on],
-[dbo].[databases2022].[recovery_model],
-[dbo].[databases2022].[recovery_model_desc],
-[dbo].[databases2022].[page_verify_option],
-[dbo].[databases2022].[page_verify_option_desc],
-[dbo].[databases2022].[is_auto_create_stats_on],
-[dbo].[databases2022].[is_auto_create_stats_incremental_on],
-[dbo].[databases2022].[is_auto_update_stats_on],
-[dbo].[databases2022].[is_auto_update_stats_async_on],
-[dbo].[databases2022].[is_ansi_null_default_on],
-[dbo].[databases2022].[is_ansi_nulls_on],
-[dbo].[databases2022].[is_ansi_padding_on],
-[dbo].[databases2022].[is_ansi_warnings_on],
-[dbo].[databases2022].[is_arithabort_on],
-[dbo].[databases2022].[is_concat_null_yields_null_on],
-[dbo].[databases2022].[is_numeric_roundabort_on],
-[dbo].[databases2022].[is_quoted_identifier_on],
-[dbo].[databases2022].[is_recursive_triggers_on],
-[dbo].[databases2022].[is_cursor_close_on_commit_on],
-[dbo].[databases2022].[is_local_cursor_default],
-[dbo].[databases2022].[is_fulltext_enabled],
-[dbo].[databases2022].[is_trustworthy_on],
-[dbo].[databases2022].[is_db_chaining_on],
-[dbo].[databases2022].[is_parameterization_forced],
-[dbo].[databases2022].[is_master_key_encrypted_by_server],
-[dbo].[databases2022].[is_query_store_on],
-[dbo].[databases2022].[is_published],
-[dbo].[databases2022].[is_subscribed],
-[dbo].[databases2022].[is_merge_published],
-[dbo].[databases2022].[is_distributor],
-[dbo].[databases2022].[is_sync_with_backup],
-[dbo].[databases2022].[service_broker_guid],
-[dbo].[databases2022].[is_broker_enabled],
-[dbo].[databases2022].[log_reuse_wait],
-[dbo].[databases2022].[log_reuse_wait_desc],
-[dbo].[databases2022].[is_date_correlation_on],
-[dbo].[databases2022].[is_cdc_enabled],
-[dbo].[databases2022].[is_encrypted],
-[dbo].[databases2022].[is_honor_broker_priority_on],
-[dbo].[databases2022].[replica_id],
-[dbo].[databases2022].[group_database_id],
-[dbo].[databases2022].[resource_pool_id],
-[dbo].[databases2022].[default_language_lcid],
-[dbo].[databases2022].[default_language_name],
-[dbo].[databases2022].[default_fulltext_language_lcid],
-[dbo].[databases2022].[default_fulltext_language_name],
-[dbo].[databases2022].[is_nested_triggers_on],
-[dbo].[databases2022].[is_transform_noise_words_on],
-[dbo].[databases2022].[two_digit_year_cutoff],
-[dbo].[databases2022].[containment],
-[dbo].[databases2022].[containment_desc],
-[dbo].[databases2022].[target_recovery_time_in_seconds],
-[dbo].[databases2022].[delayed_durability],
-[dbo].[databases2022].[delayed_durability_desc],
-[dbo].[databases2022].[is_memory_optimized_elevate_to_snapshot_on],
-[dbo].[databases2022].[is_federation_member],
-[dbo].[databases2022].[is_remote_data_archive_enabled],
-[dbo].[databases2022].[is_mixed_page_allocation_on]
-FROM 
-[dbo].[databases2022] 
 */
+GO
+
+CREATE   OR ALTER  VIEW [dbo].[vw_DB_Basic_Info]
+AS
+SELECT      
+  i.ServerName,
+  d.name,
+  i.Edition,
+  CASE
+    WHEN i.[ProductMajorVersion] = '12' THEN 2014
+    WHEN i.[ProductMajorVersion] = '13' THEN 2016
+    WHEN i.[ProductMajorVersion] = '14' THEN 2017
+    WHEN i.[ProductMajorVersion] = '15' THEN 2019
+    WHEN i.[ProductMajorVersion] = '16' THEN 2022
+    WHEN i.[ProductMajorVersion] = '17' THEN 2025
+  END AS ProductVersion,
+  d.compatibility_level,
+  d.collation_name AS [Database Collation],
+  d.state_desc,
+  d.recovery_model_desc,
+  d.create_date
+FROM            
+  dbo.databases AS d INNER JOIN
+  dbo.instances AS i ON d.i_id = i.i_id INNER JOIN
+  dbo.servers AS s ON s.s_id = i.s_id 
 
 USE master;
-*/

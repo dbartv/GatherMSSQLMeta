@@ -118,23 +118,22 @@ catch
 Write-Log -FileName $LogFile -Message "Create datatables."
 #==================================================================================================
 $ReachableServers = New-Object system.Data.DataTable  #servers that can be checked
-[void]$ReachableServers.Columns.Add("server_name",      "System.String")
-[void]$ReachableServers.Columns.Add("instance_name",    "System.String")
-[void]$ReachableServers.Columns.Add("instance_version", "System.int64")
-[void]$ReachableServers.Columns.Add("i_id",             "System.int64")
-[void]$ReachableServers.Columns.Add("full_name",        "System.String")
+[void]$ReachableServers.Columns.Add("server_name"      ,"System.String")
+[void]$ReachableServers.Columns.Add("instance_name"    ,"System.String")
+[void]$ReachableServers.Columns.Add("i_id"             ,"System.int64")
+[void]$ReachableServers.Columns.Add("full_name"        ,"System.String")
 
 $DtOutPut = New-Object system.Data.DataTable #output anomalies
-[void]$DtOutPut.Columns.Add("date",           "System.DateTime")
-[void]$DtOutPut.Columns.Add("server_name",    "System.String")
-[void]$DtOutPut.Columns.Add("object_name",    "System.String")
-[void]$DtOutPut.Columns.Add("column_name",    "System.String")
-[void]$DtOutPut.Columns.Add("Mdb_value",      "System.String")
-[void]$DtOutPut.Columns.Add("value",          "System.String")
-[void]$DtOutPut.Columns.Add("Mdb_Exists",     "System.Boolean")
-[void]$DtOutPut.Columns.Add("Db_Exists",      "System.Boolean")
-[void]$DtOutPut.Columns.Add("Is_Unreachable", "System.Boolean")
-[void]$DtOutPut.Columns.Add("Is_Db",          "System.Boolean")
+[void]$DtOutPut.Columns.Add("date"           ,"System.DateTime")
+[void]$DtOutPut.Columns.Add("server_name"    ,"System.String")
+[void]$DtOutPut.Columns.Add("object_name"    ,"System.String")
+[void]$DtOutPut.Columns.Add("column_name"    ,"System.String")
+[void]$DtOutPut.Columns.Add("Mdb_value"      ,"System.String")
+[void]$DtOutPut.Columns.Add("value"          ,"System.String")
+[void]$DtOutPut.Columns.Add("Mdb_Exists"     ,"System.Boolean")
+[void]$DtOutPut.Columns.Add("Db_Exists"      ,"System.Boolean")
+[void]$DtOutPut.Columns.Add("Is_Unreachable" ,"System.Boolean")
+[void]$DtOutPut.Columns.Add("Is_Db"          ,"System.Boolean")
 
 $DtOutput.Columns["date"].DefaultValue  = [System.DateTime]::UtcNow
 $DtOutput.Columns["Is_Db"].DefaultValue = $false
@@ -142,18 +141,8 @@ $DtOutput.Columns["Is_Db"].DefaultValue = $false
 #Check if the servers are available.
 Write-Log -FileName $LogFile -Message "Check if the servers are available."
 #==================================================================================================
-#Try to get the version for each  SQL server instance that is added to your metadata database (MDB)
-
-$Query = "SELECT
-          CASE
-            WHEN  SERVERPROPERTY('ProductMajorVersion')  = '12' THEN 2014
-            WHEN  SERVERPROPERTY('ProductMajorVersion')  = '13' THEN 2016
-            WHEN  SERVERPROPERTY('ProductMajorVersion')  = '14' THEN 2017
-            WHEN  SERVERPROPERTY('ProductMajorVersion')  = '15' THEN 2019
-            WHEN  SERVERPROPERTY('ProductMajorVersion')  = '16' THEN 2022
-            WHEN  SERVERPROPERTY('ProductMajorVersion')  = '17' THEN 2025
-          END AS  [ProductVersion]"
-
+#Try to get the name of each SQL server instance that is added to your metadata database (MDB)
+$Query  = "SELECT @@SERVERNAME AS [server_name]"
 foreach ($Result in $Results)
 {
   $ServerName      = $Result.server_name
@@ -172,18 +161,16 @@ foreach ($Result in $Results)
   try
   {
     #When the version number is retrieved, add the server to $ReachableServers, servers in this datatable will be queried to retrieve other info
-    [int]$Version= (Invoke-Sqlcmd -TrustServerCertificate -ServerInstance $SqlFullName -Database master -Query $Query -ErrorAction Stop).ProductVersion
-    [void]$ReachableServers.Rows.Add($ServerName,$InstanceName,$Version, $InId, $SqlFullName)
-    Write-Log -FileName $LogFile -Message "Connection to $SqlFullName succeeded."
+    Invoke-Sqlcmd -TrustServerCertificate -ServerInstance $SqlFullName -Database master -Query $Query -ErrorAction Stop | Out-Null
+    [void]$ReachableServers.Rows.Add($ServerName,$InstanceName,$InId, $SqlFullName)
   }
   catch
   {
     #If we cannot connect to this server, there's no point to try to retrieve other info from this server (this is only for this run)
     Write-Warning "Unable to connect to server '$SqlFullName'."
-    $NewRow                = $DtOutPut.NewRow()
-    $NewRow.server_name    = $SqlFullName
-    $NewRow.Is_Unreachable = $true
-    [void]$DtOutPut.Rows.Add($NewRow)
+    Write-Log -FileName $LogFile -Message "Unable to connect to server '$SqlFullName'."
+    Write-NonTerminatingError -FileName $LogFile -ErrorObject $_
+    [void]$UnReachableServers.Rows.Add($ServerName,$InstanceName, $InId, $SqlFullName)
   }
 }
 #==================================================================================================
